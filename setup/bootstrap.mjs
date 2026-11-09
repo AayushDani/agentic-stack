@@ -353,6 +353,6 @@ export async function main(args = process.argv.slice(2)) {
   return failed ? 1 : 0;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && fs.existsSync(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
   main().then(code => { process.exitCode = code; }).catch(e => { console.error(e.message); process.exitCode = 1; });
 }

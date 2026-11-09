@@ -45,7 +45,7 @@ export function packageRelease(output, root = source) {
   fs.writeFileSync(path.join(output, 'release.json'), JSON.stringify(manifest, null, 2) + '\n');
   return manifest;
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && fs.existsSync(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
   if (!process.argv[2]) throw new Error('Usage: node distribution/package.mjs /absolute/empty/output-directory');
   console.log(JSON.stringify(packageRelease(path.resolve(process.argv[2])), null, 2));
 }

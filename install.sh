@@ -3,9 +3,9 @@
 # Everything is inside a function so a partial piped download cannot begin setup.
 agentic_install() {
   set -euo pipefail
-  local stack_version='1.0.0'
-  local stack_sha256='13b93e301f9aa2faae56c3f489f7e856407dd84b05e5fc8bb8fddb72a18ea5c3'
-  local stack_url='https://github.com/AayushDani/agentic-stack/releases/download/v1.0.0/agentic-stack-v1.0.0.tar.gz'
+  local stack_version='1.0.1'
+  local stack_sha256='b84fd4536b72a4b738bb1452629a171a5552920184c9270ab67f12f8c52229e3'
+  local stack_url='https://github.com/AayushDani/agentic-stack/releases/download/v1.0.1/agentic-stack-v1.0.1.tar.gz'
   local stack_download_only=0
   if [ "${1:-}" = '--download-only' ]; then stack_download_only=1; shift; fi
   if [ "$(/usr/bin/uname -s)" != Darwin ]; then

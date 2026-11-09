@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { options, assertTarget, writeNew, mergeScripts, readJSON, SCHEMA, command, mcpConnected } from './bootstrap.mjs';
 
 function temporary(t) {
@@ -10,6 +12,15 @@ function temporary(t) {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
+
+test('the bootstrap starts through a symlinked installation path', t => {
+  const dir = temporary(t);
+  const alias = path.join(dir, 'installed-setup');
+  fs.symlinkSync(path.dirname(fileURLToPath(import.meta.url)), alias);
+  const result = spawnSync(process.execPath, [path.join(alias, 'bootstrap.mjs'), '--help'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Usage: bash setup.sh/);
+});
 
 test('preserves existing nonempty projects before installation', t => {
   const dir = temporary(t);
