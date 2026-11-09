@@ -1,0 +1,5 @@
+.DS_Store
+.release/
+node_modules/
+.env*
+!.env.example

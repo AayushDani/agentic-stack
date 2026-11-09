@@ -1,0 +1,64 @@
+#!/bin/bash
+# Download the complete, versioned Agentic Stack installer using stock macOS tools.
+# Everything is inside a function so a partial piped download cannot begin setup.
+agentic_install() {
+  set -euo pipefail
+  local stack_version='1.0.0'
+  local stack_sha256='13b93e301f9aa2faae56c3f489f7e856407dd84b05e5fc8bb8fddb72a18ea5c3'
+  local stack_url='https://github.com/AayushDani/agentic-stack/releases/download/v1.0.0/agentic-stack-v1.0.0.tar.gz'
+  local stack_download_only=0
+  if [ "${1:-}" = '--download-only' ]; then stack_download_only=1; shift; fi
+  if [ "$(/usr/bin/uname -s)" != Darwin ]; then
+    printf 'Agentic Stack supports macOS.\n' >&2
+    return 1
+  fi
+  local stack_root="${AGENTIC_INSTALL_ROOT:-$HOME/.local/share/agentic-stack/installers}"
+  /bin/mkdir -p "$stack_root"
+  agentic_download_work="$(/usr/bin/mktemp -d "$stack_root/.download.XXXXXX")"
+  trap 'if [ -n "${agentic_download_work:-}" ] && [ -d "$agentic_download_work" ]; then /bin/rm -rf "$agentic_download_work"; fi' EXIT
+  local stack_work="$agentic_download_work"
+  local stack_archive="$stack_work/installer.tar.gz"
+  printf 'Downloading Agentic Stack %s…\n' "$stack_version"
+  /usr/bin/curl --fail --silent --show-error --location --retry 3 \
+    --connect-timeout 20 --max-time 300 --proto '=https' --tlsv1.2 \
+    "$stack_url" -o "$stack_archive"
+  local stack_actual
+  stack_actual="$(/usr/bin/shasum -a 256 "$stack_archive")"
+  stack_actual="${stack_actual%% *}"
+  if [ "$stack_actual" != "$stack_sha256" ]; then
+    printf 'Installer checksum mismatch. Nothing was installed.\n' >&2
+    return 1
+  fi
+  # Only our two source roots belong in the release. Never extract path traversal.
+  local stack_entry
+  while IFS= read -r stack_entry; do
+    case "/$stack_entry/" in *'/../'*|*'/./'*) printf 'Unsafe archive path.\n' >&2; return 1 ;; esac
+    case "$stack_entry" in setup.sh|setup|setup/*) ;; *) printf 'Unexpected archive content.\n' >&2; return 1 ;; esac
+  done < <(/usr/bin/tar -tzf "$stack_archive")
+  /bin/mkdir "$stack_work/files"
+  /usr/bin/tar -xzf "$stack_archive" -C "$stack_work/files"
+  if [ ! -f "$stack_work/files/setup.sh" ] || [ ! -f "$stack_work/files/setup/bootstrap.mjs" ] || [ ! -f "$stack_work/files/setup/cloud.mjs" ]; then
+    printf 'The installer archive is incomplete.\n' >&2
+    return 1
+  fi
+  local stack_destination
+  stack_destination="$(/usr/bin/mktemp -d "$stack_root/v$stack_version.XXXXXX")"
+  /bin/rmdir "$stack_destination"
+  /bin/mv "$stack_work/files" "$stack_destination"
+  /bin/rm -rf "$stack_work"
+  agentic_download_work=''
+  trap - EXIT
+  printf 'Verified installer saved to: %s\n' "$stack_destination"
+  if [ "$stack_download_only" -eq 1 ]; then return 0; fi
+  # curl | bash consumes stdin. Reattach the controlling Terminal so browser
+  # verification codes, Homebrew sudo, and account logins still work normally.
+  if [ -t 0 ]; then
+    exec /bin/bash "$stack_destination/setup.sh" "$@"
+  elif ( : </dev/tty ) 2>/dev/null; then
+    exec /bin/bash "$stack_destination/setup.sh" "$@" </dev/tty
+  else
+    printf 'Download complete. Run the installer in Terminal to sign in:\n  bash "%s/setup.sh"\n' "$stack_destination" >&2
+    return 1
+  fi
+}
+agentic_install "$@"

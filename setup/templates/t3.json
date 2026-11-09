@@ -1,0 +1,25 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "defaultThreadEnvMode": "local",
+  "scripts": [
+    {
+      "name": "Run app",
+      "command": "npm run dev",
+      "icon": "play",
+      "previewUrl": "http://localhost:3000",
+      "autoOpenPreview": true
+    },
+    {
+      "name": "Check app",
+      "command": "npm run check",
+      "icon": "test"
+    },
+    {
+      "name": "Prepare worktree",
+      "command": "npm ci",
+      "icon": "configure",
+      "runOnWorktreeCreate": true,
+      "async": false
+    }
+  ]
+}
